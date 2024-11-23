@@ -20,10 +20,9 @@ def main():
     update_embeddings_usecase = UpdateEmbeddings(es_client, openai_client)
 
     print("Fetching documents without embeddings...")
-    documents = update_embeddings_usecase.fetch_documents_without_embeddings(INDEX_NAME)
-
+    documents = update_embeddings_usecase.fetch_documents_without_embeddings(INDEX_NAME, 10)
     batch = []
-    batch_size = 50
+    batch_size = 10
 
     for doc in documents:
         batch.append(doc)
