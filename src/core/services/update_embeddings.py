@@ -21,19 +21,20 @@ class UpdateEmbeddings:
                 doc["_source"].get("title", ""),
                 doc["_source"].get("ad_description", ""),
                 doc["_source"].get("categories", {}),
-                doc["_source"].get("location", "")
+                doc["_source"].get("location", ""),
+                doc["_source"].get("price", "")
             )
             for doc in documents
         ]
 
-    def prepare_combined_text(self, title: str, ad_description: str, categories: dict, location: str) -> str:
+    def prepare_combined_text(self, title: str, ad_description: str, categories: dict, location: str, price: str) -> str:
         category_text = ", ".join([
             categories.get("cat_1", ""),
             categories.get("cat_2", ""),
             categories.get("cat_3", "")
         ]).strip(", ")
 
-        combined_text = f"{title} - {ad_description} - {category_text} - {location}"
+        combined_text = f"{title}با قیمت {price} در {location} با دسته بندی {category_text}{ad_description}. توضیحات: "
         return combined_text.strip(" - ")
 
     def update_documents_with_embeddings(self, index_name: str, documents: List[Document]):
@@ -44,7 +45,8 @@ class UpdateEmbeddings:
                     title=doc.title,
                     ad_description=doc.ad_description,
                     categories=doc.categories,
-                    location=doc.location
+                    location=doc.location,
+                    price=doc.price
                 )
 
                 if not combined_text:
