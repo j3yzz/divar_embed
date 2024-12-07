@@ -6,36 +6,55 @@ from core.services.update_embeddings import UpdateEmbeddings
 
 load_dotenv()
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")
+INDEX_NAME = os.getenv("ELASTICSEARCH_INDEX_NAME")
+
+
+
+def prepare_context(results):
+    context = []
+    for doc in results:
+        source = doc["_source"]
+        context.append(
+            f"Title: {source['title']}\n"
+            f"Description: {source['ad_description']}\n"
+            f"Price: {source['categories']['rent']} Toman\n"
+            f"Location: {source['location']}\n"
+            f"URL: {source['url']}\n"
+            f"Post Token: {source['post_token']}"
+        )
+    return "\n\n".join(context)
+
 def main():
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")
-    INDEX_NAME = os.getenv("ELASTICSEARCH_INDEX_NAME")
-
-    if not OPENAI_API_KEY or not ELASTICSEARCH_HOST or not INDEX_NAME:
-        raise ValueError("Missing one or more required environment variables")
-
     es_client = ElasticsearchClient([ELASTICSEARCH_HOST])
     openai_client = OpenAIClient(OPENAI_API_KEY)
 
-    update_embeddings_usecase = UpdateEmbeddings(es_client, openai_client)
 
-    print("Fetching documents without embeddings...")
-    documents = update_embeddings_usecase.fetch_documents_without_embeddings(INDEX_NAME, 10)
-    batch = []
-    batch_size = 10
+    user_query = "من یک آپارتمان برای اجاره و رهن در ناحیه‌ی مرزداران تهران میخواهم که حدودا بین ۱۰۰ تا ۱۵۰ متر باشد و ده میلیارد ریال به عنوان پیش پرداخت (رهن) و ماهانه ۱۰۰ میلیون ریال اجاره بدهم."
 
-    for doc in documents:
-        batch.append(doc)
-        if len(batch) >= batch_size:
-            print(f"Processing batch of {len(batch)} documents...")
-            update_embeddings_usecase.update_documents_with_embeddings(INDEX_NAME, batch)
-            batch = []
+    varResponse = openai_client.generate_variables(user_query=user_query)
 
-    if batch:
-        print(f"Processing final batch of {len(batch)} documents...")
-        update_embeddings_usecase.update_documents_with_embeddings(INDEX_NAME, batch)
+    print(varResponse)
 
-    print("Completed embedding updates.")
+    # name = "آپارتمان"
+    # location = "تهران"
+    # rental_type = "house-villa-rent"
+    # square_footage = (60, 200)
+    # price = 1000000000
+    #
+    # results = es_client.search_elasticsearch(name, location, rental_type, square_footage, price, INDEX_NAME)
+    #
+    # if not results:
+    #     print("No results found for your query.")
+    #     exit(1)
+    #
+    # context = prepare_context(results)
+    #
+    # response = openai_client.generate_response(user_query, context)
+    #
+    # print(response)
+
 
 if __name__ == "__main__":
     main()
