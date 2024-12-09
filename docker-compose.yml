@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_app
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./src:/app
