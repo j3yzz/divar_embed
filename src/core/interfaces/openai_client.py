@@ -1,4 +1,5 @@
 import json
+from http.client import responses
 
 import openai
 import logging
@@ -15,6 +16,7 @@ class PropertyQueryDTO:
     square_footage_max: Optional[int] = None
     prepayment: Optional[float] = None
     price: Optional[float] = None
+    keywords: Optional[str] = None
 
 
 class OpenAIClient:
@@ -41,7 +43,7 @@ class OpenAIClient:
     def generate_response(user_query, context):
         prompt = f"User Query: {user_query}\n\nHere are the top matches:\n{context}\n\nPlease suggest the best option in Persian."
         print(prompt)
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
@@ -64,17 +66,18 @@ class OpenAIClient:
     def generate_variables(user_query):
         prompt = (
             f"Extract all important keywords from following text and return in JSON format."
-            f"JSON must include these keys: category_type, city, district, square_footage.min, square_footage.max, prepayment, price."
+            f"JSON must include these keys: category_type, city, district, square_footage.min, square_footage.max, prepayment, price, keywords."
             f"Details: "
             f"1. category_type (include: apartment-sell, plot-old, house-villa-sell, apartment-rent, suite-apartment, villa, house-villa-rent, shop-rent, shop-sell, presell, office-rent, office-sell, workspace)"
             f"2. city (convert to persian)"
             f"3. district (convert to Finglish)"
             f"4. Range of Square footage (return format: min, max)"
             f"5. Prepayment and price (must be only number(integer))"
+            f"6. Extract Keywords with OR for Elasticsearch Query"
             f"User query: {user_query}"
         )
 
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
@@ -92,7 +95,7 @@ class OpenAIClient:
             presence_penalty=0
         )
 
-        response_json = response.choices[0].message["content"]
+        response_json = response.choices[0].message.content
         response_json = json.loads(response_json)
 
         return PropertyQueryDTO(
@@ -102,5 +105,6 @@ class OpenAIClient:
             square_footage_min=response_json.get("square_footage", {}).get("min"),
             square_footage_max=response_json.get("square_footage", {}).get("max"),
             prepayment=response_json.get("prepayment"),
-            price=response_json.get("price")
+            price=response_json.get("price"),
+            keywords=response_json.get("keywords")
         )

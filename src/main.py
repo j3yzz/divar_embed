@@ -1,15 +1,16 @@
 import os
 from dotenv import load_dotenv
+from fastapi import FastAPI
+
 from core.interfaces.elasticsearch_client import ElasticsearchClient
 from core.interfaces.openai_client import OpenAIClient
-from core.services.update_embeddings import UpdateEmbeddings
+from pydantic import BaseModel
 
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")
 INDEX_NAME = os.getenv("ELASTICSEARCH_INDEX_NAME")
-
 
 
 def prepare_context(results):
@@ -26,35 +27,40 @@ def prepare_context(results):
         )
     return "\n\n".join(context)
 
-def main():
+
+app = FastAPI()
+
+
+class Payload(BaseModel):
+    prompt: str
+
+
+@app.post("/process")
+async def process_payload(payload: Payload):
     es_client = ElasticsearchClient([ELASTICSEARCH_HOST])
     openai_client = OpenAIClient(OPENAI_API_KEY)
 
+    user_query = payload.prompt
 
-    user_query = "من یک آپارتمان برای اجاره و رهن در ناحیه‌ی مرزداران تهران میخواهم که حدودا بین ۱۰۰ تا ۱۵۰ متر باشد و ده میلیارد ریال به عنوان پیش پرداخت (رهن) و ماهانه ۱۰۰ میلیون ریال اجاره بدهم."
+    userQueryExtractedVariables = openai_client.generate_variables(user_query=user_query)
 
-    varResponse = openai_client.generate_variables(user_query=user_query)
-
-    print(varResponse)
-
-    # name = "آپارتمان"
-    # location = "تهران"
-    # rental_type = "house-villa-rent"
-    # square_footage = (60, 200)
-    # price = 1000000000
-    #
-    # results = es_client.search_elasticsearch(name, location, rental_type, square_footage, price, INDEX_NAME)
-    #
-    # if not results:
-    #     print("No results found for your query.")
-    #     exit(1)
-    #
-    # context = prepare_context(results)
-    #
-    # response = openai_client.generate_response(user_query, context)
-    #
-    # print(response)
-
-
-if __name__ == "__main__":
-    main()
+    response = es_client.search_elasticsearch(
+        location=userQueryExtractedVariables.city,
+        rental_type=userQueryExtractedVariables.category_type,
+        square_footage=(userQueryExtractedVariables.square_footage_min, userQueryExtractedVariables.square_footage_max),
+        price=userQueryExtractedVariables.price,
+        prepayment=userQueryExtractedVariables.prepayment,
+        keywords=userQueryExtractedVariables.keywords,
+        index_name=INDEX_NAME
+    )
+    return {"status": "ok", "data": [
+        {
+            "ad_description": doc["_source"]["ad_description"],
+            "title": doc["_source"]["title"],
+            "ad_link": "https://divar.ir/v/" + doc["_source"]["post_token"],
+            "images": doc["_source"]["images"][0].get("url", {}),
+            "extracted_categories": doc["_source"]["extracted_categories"],
+            "credit": doc["_source"]["categories"].get("credit"),
+        }
+        for doc in response
+    ]}

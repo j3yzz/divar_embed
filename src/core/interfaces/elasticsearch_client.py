@@ -33,11 +33,13 @@ class ElasticsearchClient:
         helpers.bulk(self.es, actions)
 
     @staticmethod
-    def build_query(name=None, location=None, rental_type=None, square_footage=None, price=None):
-        query = {"bool": {"must": [], "filter": []}}
+    def build_query(location=None, rental_type=None, square_footage=None, price=None, prepayment=None, keywords=None):
+        query = {
+            "bool": {"must": [], "filter": []}
+        }
 
-        if name:
-            query["bool"]["must"].append({"multi_match": {"query": name, "fields": ["title", "ad_description"]}})
+        if keywords:
+            query["bool"]["must"].append({"query_string": {"default_field": "ad_description", "query": keywords}})
 
         if location:
             query["bool"]["must"].append({"term": {"original_copy.city.name.keyword": location}})
@@ -61,13 +63,27 @@ class ElasticsearchClient:
         return query
 
     def search_elasticsearch(self,
-                             name=None,
                              location=None,
                              rental_type=None,
                              square_footage=None,
                              price=None,
+                             prepayment=None,
+                             keywords=None,
                              index_name=None):
-        query = self.build_query(name, location, rental_type, square_footage, price)
-        response = self.es.search(index=index_name, body={"query": query})
+        query = self.build_query(location, rental_type, square_footage, price, prepayment, keywords)
+        response = self.es.search(
+            index=index_name,
+            body={
+                "query": query,
+                "_source": [
+                    "ad_description",
+                    "title",
+                    "post_token",
+                    "images",
+                    "extracted_categories",
+                    "categories.credit",
+                ]
+            },
+            size=10)
 
         return response["hits"]["hits"]
