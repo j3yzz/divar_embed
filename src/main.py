@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from core.interfaces.elasticsearch_client import ElasticsearchClient
 from core.interfaces.openai_client import OpenAIClient
 from pydantic import BaseModel
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -34,8 +33,6 @@ def prepare_context(results):
 app = FastAPI()
 
 origins = ["*"]
-
-app.add_middleware(HTTPSRedirectMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
