@@ -6,6 +6,8 @@ from core.interfaces.elasticsearch_client import ElasticsearchClient
 from core.interfaces.openai_client import OpenAIClient
 from pydantic import BaseModel
 
+from fastapi.middleware.cors import CORSMiddleware
+
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -30,6 +32,15 @@ def prepare_context(results):
 
 app = FastAPI()
 
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class Payload(BaseModel):
     prompt: str
