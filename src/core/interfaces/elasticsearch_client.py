@@ -1,3 +1,5 @@
+import json
+
 from elasticsearch import Elasticsearch, helpers
 
 
@@ -47,10 +49,10 @@ class ElasticsearchClient:
         if rental_type:
             query["bool"]["must"].append({"term": {"categories.cat_3.keyword": rental_type}})
 
-        # if square_footage:
-        #     min_sqft, max_sqft = square_footage
-        #     query["bool"]["filter"].append(
-        #         {"range": {"seo.post_seo_schema.floorSize.value": {"gte": min_sqft, "lte": max_sqft}}})
+        if square_footage:
+            min_sqft, max_sqft = square_footage
+            query["bool"]["filter"].append(
+                {"range": {"original_copy.seo.post_seo_schema.floorSize.value": {"gte": min_sqft, "lte": max_sqft}}})
 
         if price:
             max_price = price

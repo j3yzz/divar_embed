@@ -66,14 +66,13 @@ class OpenAIClient:
     def generate_variables(user_query):
         prompt = (
             f"Extract all important keywords from following text and return in JSON format."
-            f"JSON must include these keys: category_type, city, district, square_footage.min, square_footage.max, prepayment, price, keywords."
+            f"JSON must include these keys: category_type, city, square_footage.min, square_footage.max, prepayment, price, keywords."
             f"Details: "
             f"1. category_type (include: apartment-sell, plot-old, house-villa-sell, apartment-rent, suite-apartment, villa, house-villa-rent, shop-rent, shop-sell, presell, office-rent, office-sell, workspace)"
             f"2. city (convert to persian)"
-            f"3. district (convert to Finglish)"
-            f"4. Range of Square footage (return format: min, max)"
-            f"5. Prepayment and price (must be only number(integer))"
-            f"6. Extract Keywords with OR for Elasticsearch Query"
+            f"3. Range of Square footage (return format: min, max)"
+            f"4. Prepayment and price (must be only number(integer))"
+            f"5. Extract Keywords with OR for Elasticsearch Query"
             f"User query: {user_query}"
         )
 
