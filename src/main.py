@@ -55,15 +55,9 @@ async def process_payload(payload: Payload):
 
     userQueryExtractedVariables = openai_client.generate_variables(user_query=user_query)
 
-    response = es_client.search_elasticsearch(
-        location=userQueryExtractedVariables.city,
-        rental_type=userQueryExtractedVariables.category_type,
-        square_footage=(userQueryExtractedVariables.square_footage_min, userQueryExtractedVariables.square_footage_max),
-        price=userQueryExtractedVariables.price,
-        prepayment=userQueryExtractedVariables.prepayment,
-        keywords=userQueryExtractedVariables.keywords,
-        index_name=INDEX_NAME
-    )
+    print("vars", userQueryExtractedVariables)
+
+    response = es_client.search_elasticsearch(INDEX_NAME, userQueryExtractedVariables)
     return {"status": "ok", "data": [
         {
             "ad_description": doc["_source"]["ad_description"],

@@ -2,7 +2,6 @@ import json
 
 from elasticsearch import Elasticsearch, helpers
 
-
 class ElasticsearchClient:
     def __init__(self, hosts, timeout=30):
         self.es = Elasticsearch(hosts, headers={"Content-Type": "application/json"}, timeout=timeout)
@@ -35,44 +34,47 @@ class ElasticsearchClient:
         helpers.bulk(self.es, actions)
 
     @staticmethod
-    def build_query(location=None, rental_type=None, square_footage=None, price=None, prepayment=None, keywords=None):
+    def build_query(PropertyQueryDTO):
+        print("PropertyQueryDTO", PropertyQueryDTO)
         query = {
             "bool": {"must": [], "filter": []}
         }
 
-        if keywords:
-            query["bool"]["must"].append({"query_string": {"default_field": "ad_description", "query": keywords}})
+        if PropertyQueryDTO.keywords:
+            query["bool"]["must"].append({"query_string": {"default_field": "ad_description", "query": PropertyQueryDTO.keywords}})
 
-        if location:
-            query["bool"]["must"].append({"term": {"original_copy.city.name.keyword": location}})
+        if PropertyQueryDTO.city:
+            query["bool"]["must"].append({"term": {"original_copy.city.name.keyword": PropertyQueryDTO.city}})
 
-        if rental_type:
-            query["bool"]["must"].append({"term": {"categories.cat_3.keyword": rental_type}})
+        if PropertyQueryDTO.category_type:
+            query["bool"]["must"].append({"term": {"categories.cat_3.keyword": PropertyQueryDTO.category_type}})
 
-        if square_footage:
-            min_sqft, max_sqft = square_footage
+        if PropertyQueryDTO.square_footage_min or PropertyQueryDTO.square_footage_max:
+            min_sqft, max_sqft = (PropertyQueryDTO.square_footage_min, PropertyQueryDTO.square_footage_max)
+            if min_sqft is None:
+                min_sqft = 0
+            if max_sqft is None:
+                max_sqft = 100000
+
             query["bool"]["filter"].append(
                 {"range": {"original_copy.seo.post_seo_schema.floorSize.value": {"gte": min_sqft, "lte": max_sqft}}})
 
-        if price:
-            max_price = price
-            query["bool"]["filter"].append({"range": {"categories.rent": {"lte": max_price}}})
-            query["bool"]["filter"].append({"range": {"categories.credit": {"lte": max_price}}})
-            query["bool"]["filter"].append({"range": {"categories.price": {"lte": max_price}}})
+        if PropertyQueryDTO.prepayment:
+            query["bool"]["filter"].append({"range": {"original_copy.webengage.credit": {"gte": PropertyQueryDTO.prepayment}}})
+
+        if PropertyQueryDTO.price:
+            query["bool"]["filter"].append({"range": {"original_copy.webengage.rent": {"gte": PropertyQueryDTO.prepayment}}})
 
         query["bool"]["must"].append({"range": {"document_inserted_at": {"gte": "now-5d/d"}}})
 
         return query
 
     def search_elasticsearch(self,
-                             location=None,
-                             rental_type=None,
-                             square_footage=None,
-                             price=None,
-                             prepayment=None,
-                             keywords=None,
-                             index_name=None):
-        query = self.build_query(location, rental_type, square_footage, price, prepayment, keywords)
+                             index_name,
+                             PropertyQueryDTO):
+        query = self.build_query(PropertyQueryDTO)
+        print("query", query)
+
         response = self.es.search(
             index=index_name,
             body={
