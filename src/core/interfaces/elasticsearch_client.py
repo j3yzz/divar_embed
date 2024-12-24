@@ -65,7 +65,7 @@ class ElasticsearchClient:
         if PropertyQueryDTO.price:
             query["bool"]["filter"].append({"range": {"original_copy.webengage.rent": {"gte": PropertyQueryDTO.prepayment}}})
 
-        query["bool"]["must"].append({"range": {"document_inserted_at": {"gte": "now-5d/d"}}})
+        query["bool"]["must"].append({"range": {"robot_seen_at": {"gte": "now-5d/d"}}})
 
         return query
 
